@@ -65,19 +65,27 @@ return function (App $app) {
 
     // POST
     $app->post('/stadium', function (Request $request, Response $response) {
-        $parsedBody = $request->getParsedBody();
 
-        $id = $parsedBody["id"]; // menambah dengan kolom baru
-        $Nama_Stadion = $parsedBody["Nama_Stadion"];
-        $Kota_Stadion = $parsedBody["Kota_Stadion"];
+        try {
+            $parseBody = $request->getParsedBody();
+        if(
+            empty($parseBody["id"]) ||
+            empty($parseBody["Nama_Stadion"]) ||
+            empty($parseBody["Kota_Stadion"])
+        ) {
+            throw new Exception ("Input tidak boleh kosong");
+        }
+
+        $id = $parseBody["id"];
+        $Nama_Stadion = $parseBody["Nama_Stadion"];
+        $Kota_Stadion = $parseBody["Kota_Stadion"];
         $db = $this->get(PDO::class);
-
-        $query = $db->prepare('CALL InsertStadium() values (?, ?)');
+        $query = $db->prepare('CALL InsertStadium (?, ?, ?)');
 
         // urutan harus sesuai dengan values
         $query->execute([$id, $Nama_Stadion, $Kota_Stadion]);
-
-        $lastId = $db->lastInsertId();
+        $lastIdQuery = $db->query("SELECT @lastId as last_id");
+        $lastId = $lastIdQuery->fetch(PDO::FETCH_ASSOC)['last_id'];
 
         $response->getBody()->write(json_encode(
             [
@@ -86,5 +94,14 @@ return function (App $app) {
         ));
 
         return $response->withHeader("Content-Type", "application/json");
+    } 
+    catch (Exception $exception) {
+        $errorResponse = ['error' => $exception->getMessage()];
+        $response = $response
+        ->withStatus(400)
+        ->withHeader("Content-Type", "application/json");
+        $response->getBody()->write(json_encode($errorResponse));
+        return $response;
+    }
     });
 };
