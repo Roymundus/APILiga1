@@ -14,12 +14,30 @@ return function (App $app) {
     $app->get('/team', function (Request $request, Response $response) {
         $db = $this->get(PDO::class);
 
-        $query = $db->query('CALL  ShowTim()');
-        $results = $query->fetchAll(PDO::FETCH_ASSOC);
-        $response->getBody()->write(json_encode($results));
+        $query = $db->query('CALL  ShowTim()')->fetchAll(PDO::FETCH_ASSOC);
+        $response->getBody()->write(json_encode($query));
 
         return $response->withHeader("Content-Type", "application/json");
     });
+
+    $app->get('/team/{id}', function (Request $request, Response $response, $args) {
+        $db = $this->get(PDO::class);
+        $teamId = $args['id'];
+    
+        $query = $db->prepare('CALL GetTeamNameById(:teamId)');
+        $query->bindParam(':teamId', $teamId, PDO::PARAM_INT);
+        $query->execute();
+        $result = $query->fetch(PDO::FETCH_ASSOC);
+    
+        if ($result) {
+            $response->getBody()->write(json_encode($result));
+            return $response->withHeader("Content-Type", "application/json");
+        } else {
+            // Tim dengan ID tertentu tidak ditemukan
+            return $response->withStatus(404);
+        }
+    });
+    
 
     $app->get('/player', function (Request $request, Response $response) {
         $db = $this->get(PDO::class);
@@ -31,6 +49,8 @@ return function (App $app) {
         return $response->withHeader("Content-Type", "application/json");
     });
 
+    
+
 
     $app->get('/standings', function (Request $request, Response $response) {
         $db = $this->get(PDO::class);
@@ -40,6 +60,62 @@ return function (App $app) {
         $response->getBody()->write(json_encode($results));
 
         return $response->withHeader("Content-Type", "application/json");
+    });
+
+    $app->get('/standings/{id}', function (Request $request, Response $response, $args) {
+        $db = $this->get(PDO::class);
+        $Klasemen_ID = $args['id'];
+    
+        $query = $db->prepare('CALL GetStandingsById(:Klasemen_ID)');
+        $query->bindParam(':Klasemen_ID', $Klasemen_ID, PDO::PARAM_INT);
+        $query->execute();
+        $result = $query->fetch(PDO::FETCH_ASSOC);
+    
+        if ($result) {
+            $response->getBody()->write(json_encode($result));
+            return $response->withHeader("Content-Type", "application/json");
+        } else {
+            // Tim dengan ID tertentu tidak ditemukan
+            return $response->withStatus(404);
+        }
+    });
+
+
+    $app->get('/player/{id}', function (Request $request, Response $response, $args) {
+        $db = $this->get(PDO::class);
+        $Pemain_ID = $args['id'];
+    
+        $query = $db->prepare('CALL GetPlayerbyID(:Pemain_ID)');
+        $query->bindParam(':Pemain_ID', $Pemain_ID, PDO::PARAM_INT);
+        $query->execute();
+        $result = $query->fetch(PDO::FETCH_ASSOC);
+    
+        if ($result) {
+            $response->getBody()->write(json_encode($result));
+            return $response->withHeader("Content-Type", "application/json");
+        } else {
+            // Pemain dengan ID tertentu tidak ditemukan
+            return $response->withStatus(404);
+        }
+    });
+
+
+    $app->get('/stadium/{id}', function (Request $request, Response $response, $args) {
+        $db = $this->get(PDO::class);
+        $Stadion_ID = $args['id'];
+    
+        $query = $db->prepare('CALL GetStadiumbyID(:Stadium_ID)');
+        $query->bindParam(':Stadium_ID', $Stadion_ID, PDO::PARAM_INT);
+        $query->execute();
+        $result = $query->fetch(PDO::FETCH_ASSOC);
+    
+        if ($result) {
+            $response->getBody()->write(json_encode($result));
+            return $response->withHeader("Content-Type", "application/json");
+        } else {
+            // Pemain dengan ID tertentu tidak ditemukan
+            return $response->withStatus(404);
+        }
     });
 
     $app->get('/stadium', function (Request $request, Response $response) {
@@ -60,6 +136,24 @@ return function (App $app) {
         $response->getBody()->write(json_encode($results));
 
         return $response->withHeader("Content-Type", "application/json");
+    });
+
+    $app->get('/pertandingan/{id}', function (Request $request, Response $response, $args) {
+        $db = $this->get(PDO::class);
+        $Pertandingan_ID = $args['id'];
+    
+        $query = $db->prepare('CALL GetMatchById(:Pertandingan_ID)');
+        $query->bindParam(':Pertandingan_ID', $Pertandingan_ID, PDO::PARAM_INT);
+        $query->execute();
+        $result = $query->fetch(PDO::FETCH_ASSOC);
+    
+        if ($result) {
+            $response->getBody()->write(json_encode($result));
+            return $response->withHeader("Content-Type", "application/json");
+        } else {
+            // Tim dengan ID tertentu tidak ditemukan
+            return $response->withStatus(404);
+        }
     });
 
 
@@ -211,7 +305,7 @@ return function (App $app) {
             empty($parseBody["Tim_Tamu_ID"]) ||
             empty($parseBody["Stadion_ID"])
         ) {
-            // throw new Exception ("Input tidak boleh kosong");
+            throw new Exception ("Input tidak boleh kosong");
         }
 
         $Pertandingan_ID = $parseBody["Pertandingan_ID"];
@@ -250,79 +344,210 @@ return function (App $app) {
 
 
      // put data
-    $app->put('/countries/{id}', function (Request $request, Response $response, $args) {
+    $app->put('/stadium/{Stadion_ID}', function (Request $request, Response $response, $args) {
         $parsedBody = $request->getParsedBody();
-
-        $currentId = $args['id'];
+    
+        $Stadion_ID = $args['Stadion_ID'];
         $Nama_Stadion = $parsedBody["Nama_Stadion"];
         $Kota_Stadion = $parsedBody["Kota_Stadion"];
-
+    
         $db = $this->get(PDO::class);
-
-        $query = $db->prepare('CALL UpdateStadium (?, ?, ?)');
-        $query->bindrParam([1, $currentId, PDO::PARAM_INT]);
-        $query->bindrParam([2, $Nama_Stadion, PDO::PARAM_STR]);
-        $query->bindrParam([3, $Kota_Stadion, PDO::PARAM_STR]);
-
+    
+        $query = $db->prepare('CALL UpdateStadion(?, ?, ?)');
+        $query->bindParam(1, $Stadion_ID, PDO::PARAM_INT);
+        $query->bindParam(2, $Nama_Stadion, PDO::PARAM_STR);
+        $query->bindParam(3, $Kota_Stadion, PDO::PARAM_STR);
+    
         $query->execute();
-
+    
         if ($query) {
             $response->getBody()->write(json_encode(
                 [
-                    'message' => 'Stadium dengan id ' . $currentId . ' telah diupdate dengan nama ' . $Nama_Stadion
+                    'message' => 'Stadium dengan id ' . $Stadion_ID . ' telah diupdate dengan nama ' . $Nama_Stadion
                 ]
             ));
         } else {
             $response->getBody()->write(json_encode(
                 [
-                    'message' => 'Stadium dengan id ' . $currentId . ' gagal diupdate'
+                    'message' => 'Stadium dengan id ' . $Stadion_ID . ' gagal diupdate'
                 ]
             ));
         }
-
+    
         return $response->withHeader("Content-Type", "application/json");
     });
 
-
-
-
-
-    // ========================================================================
-     // delete data
-    $app->delete('/player/{id}', function (Request $request, Response $response, $args) {
-        $currentId = $args['id'];
+    $app->put('/team/{Tim_ID}', function (Request $request, Response $response, $args) {
+        $parsedBody = $request->getParsedBody();
+    
+        $Tim_ID = $args['Tim_ID'];
+        $Nama_Tim = $parsedBody["Nama_Tim"];
+        $Kota_Asal = $parsedBody["Kota_Asal"];
+    
         $db = $this->get(PDO::class);
-
-        try {
-            $query = $db->prepare('CALL DeletePlayerByID (?)');
-            $query->execute([$currentId]);
-
-            if ($query->rowCount() === 0) {
-                $response = $response->withStatus(404);
-                $response->getBody()->write(json_encode(
-                    [
-                        'message' => 'Data tidak ditemukan'
-                    ]
-                ));
-            } else {
-                $response->getBody()->write(json_encode(
-                    [
-                        'message' => 'Player dengan ID ' . $currentId . ' dihapus dari database'
-                    ]
-                ));
-            }
-        } catch (PDOException $e) {
-            $response = $response->withStatus(500);
+    
+        $query = $db->prepare('CALL UpdateTim(?, ?, ?)');
+        $query->bindParam(1, $Tim_ID, PDO::PARAM_INT);
+        $query->bindParam(2, $Nama_Tim, PDO::PARAM_STR);
+        $query->bindParam(3, $Kota_Asal, PDO::PARAM_STR);
+    
+        $query->execute();
+    
+        if ($query) {
             $response->getBody()->write(json_encode(
                 [
-                    'message' => 'Database error ' . $e->getMessage()
+                    'message' => 'Tim dengan id ' . $Tim_ID . ' telah diupdate dengan nama ' . $Nama_Tim
+                ]
+            ));
+        } else {
+            $response->getBody()->write(json_encode(
+                [
+                    'message' => 'Tim dengan id ' . $Tim_ID . ' gagal diupdate'
                 ]
             ));
         }
-
+    
         return $response->withHeader("Content-Type", "application/json");
     });
 
+
+    $app->put('/pertandingan/{Pertandingan_ID}', function (Request $request, Response $response, $args) {
+        $parsedBody = $request->getParsedBody();
+    
+        $Pertandingan_ID = $args['Pertandingan_ID'];
+        $Tanggal_Pertandingan = $parsedBody["Tanggal_Pertandingan"];
+        $Skor_Tuan_Rumah = $parsedBody["Skor_Tuan_Rumah"];
+        $Skor_Tamu = $parsedBody["Skor_Tamu"];
+        $Tim_Tuan_Rumah_ID = $parsedBody["Tim_Tuan_Rumah_ID"];
+        $Tim_Tamu_ID = $parsedBody["Tim_Tamu_ID"];
+        $Stadion_ID = $parsedBody["Stadion_ID"];
+    
+    
+        $db = $this->get(PDO::class);
+    
+        $query = $db->prepare('CALL UpdatePertandingan(?, ?, ?, ?, ?, ?, ?)');
+        $query->bindParam(1, $Pertandingan_ID, PDO::PARAM_INT);
+        $query->bindParam(2, $Tanggal_Pertandingan, PDO::PARAM_STR);
+        $query->bindParam(3, $Skor_Tuan_Rumah, PDO::PARAM_STR);
+        $query->bindParam(4, $Skor_Tamu, PDO::PARAM_STR);
+        $query->bindParam(5, $Tim_Tuan_Rumah_ID, PDO::PARAM_STR);
+        $query->bindParam(6, $Tim_Tamu_ID, PDO::PARAM_STR);
+        $query->bindParam(7, $Stadion_ID, PDO::PARAM_STR);
+        
+    
+        $query->execute();
+    
+        if ($query) {
+            $response->getBody()->write(json_encode(
+                [
+                    'message' => 'Pertandingan dengan ID ' . $Pertandingan_ID . ' telah diupdate '
+                ]
+            ));
+        } else {
+            $response->getBody()->write(json_encode(
+                [
+                    'message' => 'Pertandingan dengan id ' . $Pertandingan_ID . ' gagal diupdate'
+                ]
+            ));
+        }
+    
+        return $response->withHeader("Content-Type", "application/json");
+    });
+
+
+    $app->put('/player/{Pemain_ID}', function (Request $request, Response $response, $args) {
+        $parsedBody = $request->getParsedBody();
+    
+        $Pemain_ID = $args['Pemain_ID'];
+        $Nama_Pemain = $parsedBody["Nama_Pemain"];
+        $Tanggal_Lahir = $parsedBody["Tanggal_Lahir"];
+        $Tinggi = $parsedBody["Tinggi"];
+        $Posisi_Pemain = $parsedBody["Posisi_Pemain"];
+        $Nomor_Punggung = $parsedBody["Nomor_Punggung"];
+        $Tim_ID = $parsedBody["Tim_ID"];
+    
+    
+        $db = $this->get(PDO::class);
+    
+        $query = $db->prepare('CALL UpdatePlayerByID(?, ?, ?, ?, ?, ?, ?)');
+        $query->bindParam(1, $Pemain_ID, PDO::PARAM_INT);
+        $query->bindParam(2, $Nama_Pemain, PDO::PARAM_STR);
+        $query->bindParam(3, $Tanggal_Lahir, PDO::PARAM_STR);
+        $query->bindParam(4, $Tinggi, PDO::PARAM_STR);
+        $query->bindParam(5, $Posisi_Pemain, PDO::PARAM_STR);
+        $query->bindParam(6, $Nomor_Punggung, PDO::PARAM_STR);
+        $query->bindParam(7, $Tim_ID, PDO::PARAM_STR);
+        
+    
+        $query->execute();
+    
+        if ($query) {
+            $response->getBody()->write(json_encode(
+                [
+                    'message' => 'Player dengan ID ' . $Pemain_ID . ' telah diupdate'
+                ]
+            ));
+        } else {
+            $response->getBody()->write(json_encode(
+                [
+                    'message' => 'Player dengan id ' . $Pemain_ID . ' gagal diupdate'
+                ]
+            ));
+        }
+    
+        return $response->withHeader("Content-Type", "application/json");
+    });
+
+
+    $app->put('/standings/{Klasemen_ID}', function (Request $request, Response $response, $args) {
+        $parsedBody = $request->getParsedBody();
+    
+        $Klasemen_ID = $args['Klasemen_ID'];
+        $Jumlah_Pertandingan = $parsedBody["Jumlah_Pertandingan"];
+        $Jumlah_Kemenangan = $parsedBody["Jumlah_Kemenangan"];
+        $Jumlah_Seri = $parsedBody["Jumlah_Seri"];
+        $Jumlah_Kekalahan = $parsedBody["Jumlah_Kekalahan"];
+        $Jumlah_Gol = $parsedBody["Jumlah_Gol"];
+        $Jumlah_Gol_Kebobolan = $parsedBody["Jumlah_Gol_Kebobolan"];
+        $Poin = $parsedBody["Poin"];
+        $Tim_ID = $parsedBody["Tim_ID"];
+    
+    
+        $db = $this->get(PDO::class);
+    
+        $query = $db->prepare('CALL UpdateStandings(?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $query->bindParam(1, $Klasemen_ID, PDO::PARAM_INT);
+        $query->bindParam(2, $Jumlah_Pertandingan, PDO::PARAM_STR);
+        $query->bindParam(3, $Jumlah_Kemenangan, PDO::PARAM_STR);
+        $query->bindParam(4, $Jumlah_Seri, PDO::PARAM_STR);
+        $query->bindParam(5, $Jumlah_Kekalahan, PDO::PARAM_STR);
+        $query->bindParam(6, $Jumlah_Gol, PDO::PARAM_STR);
+        $query->bindParam(7, $Jumlah_Gol_Kebobolan, PDO::PARAM_STR);
+        $query->bindParam(8, $Poin, PDO::PARAM_STR);
+        $query->bindParam(9, $Tim_ID, PDO::PARAM_STR);
+        
+    
+        $query->execute();
+    
+        if ($query) {
+            $response->getBody()->write(json_encode(
+                [
+                    'message' => 'Klasemen dengan ID ' . $Klasemen_ID . ' telah diupdate'
+                ]
+            ));
+        } else {
+            $response->getBody()->write(json_encode(
+                [
+                    'message' => 'Klasemen dengan id ' . $Klasemen_ID . ' gagal diupdate'
+                ]
+            ));
+        }
+    
+        return $response->withHeader("Content-Type", "application/json");
+    });
+
+
+    // DELETE
 
     $app->delete('/stadium/{id}', function (Request $request, Response $response, $args) {
         $currentId = $args['id'];
